@@ -1,0 +1,130 @@
+version: "3.9"
+
+services:
+  nextcloud:
+    image: nextcloud:29-apache
+    container_name: nextcloud
+    ports:
+      - "8080:80"
+    environment:
+      MYSQL_HOST: nextcloud_db
+      MYSQL_DATABASE: nextcloud
+      MYSQL_USER: nextcloud
+      MYSQL_PASSWORD: ${NEXTCLOUD_DB_PASSWORD:?set NEXTCLOUD_DB_PASSWORD in .env}
+    volumes:
+      - nextcloud_html:/var/www/html
+      - nextcloud_data:/var/www/html/data
+    depends_on:
+      - nextcloud_db
+    networks:
+      - app_net
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1024M
+
+  nextcloud_db:
+    image: mariadb:11.4
+    container_name: nextcloud_db
+    environment:
+      MARIADB_DATABASE: nextcloud
+      MARIADB_USER: nextcloud
+      MARIADB_PASSWORD: ${NEXTCLOUD_DB_PASSWORD:?set NEXTCLOUD_DB_PASSWORD in .env}
+      MARIADB_ROOT_PASSWORD: ${NEXTCLOUD_DB_ROOT_PASSWORD:?set NEXTCLOUD_DB_ROOT_PASSWORD in .env}
+    volumes:
+      - nextcloud_db:/var/lib/mysql
+    networks:
+      - app_net
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1024M
+
+  mediawiki:
+    image: mediawiki:1.41
+    container_name: mediawiki
+    ports:
+      - "8085:80"
+    environment:
+      MEDIAWIKI_DB_TYPE: mysql
+      MEDIAWIKI_DB_HOST: mediawiki_db
+      MEDIAWIKI_DB_NAME: mediawiki
+      MEDIAWIKI_DB_USER: mediawiki
+      MEDIAWIKI_DB_PASSWORD: ${MEDIAWIKI_DB_PASSWORD:?set MEDIAWIKI_DB_PASSWORD in .env}
+    volumes:
+      - mediawiki_data:/var/www/html
+      - mediawiki_images:/var/www/html/images
+    depends_on:
+      - mediawiki_db
+    networks:
+      - app_net
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  mediawiki_db:
+    image: mariadb:11.4
+    container_name: mediawiki_db
+    environment:
+      MARIADB_DATABASE: mediawiki
+      MARIADB_USER: mediawiki
+      MARIADB_PASSWORD: ${MEDIAWIKI_DB_PASSWORD:?set MEDIAWIKI_DB_PASSWORD in .env}
+      MARIADB_ROOT_PASSWORD: ${MEDIAWIKI_DB_ROOT_PASSWORD:?set MEDIAWIKI_DB_ROOT_PASSWORD in .env}
+    volumes:
+      - mediawiki_db:/var/lib/mysql
+    networks:
+      - app_net
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  gogs:
+    image: gogs/gogs:0.13.0
+    container_name: gogs
+    ports:
+      - "3000:3000"
+    volumes:
+      - gogs_data:/data
+    networks:
+      - app_net
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  portainer:
+    image: portainer/portainer-ce:2.21.5
+    container_name: portainer
+    ports:
+      - "9000:9000"
+    volumes:
+      - portainer_data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - app_net
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+volumes:
+  nextcloud_html:
+  nextcloud_data:
+  nextcloud_db:
+  mediawiki_images:
+  mediawiki_data:
+  mediawiki_db:
+  gogs_data:
+  portainer_data:
+
+networks:
+  app_net:
+    driver: bridge
